@@ -2,20 +2,6 @@
 
 const mongoose = require('mongoose');
 
-const experienceSchema = new mongoose.Schema({
-  company: String,
-  role: String,
-  from: Date,
-  to: Date
-}, { _id: false });
-
-const educationSchema = new mongoose.Schema({
-  school: String,
-  degree: String,
-  from: Date,
-  to: Date
-}, { _id: false });
-
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -25,13 +11,14 @@ const userSchema = new mongoose.Schema({
   profilePic: { type: String, default: '' },
   bannerPic: { type: String, default: '' },
 
-  experience: [experienceSchema],
-  education: [educationSchema],
-  skills: [String],
+  experience: { type: String, default: '' }, // simple text
+  education: { type: String, default: '' },  // simple text
+  skills: { type: String, default: '' },     // simple text
 
-  // If you keep connection collection separate you may or may not need arrays here.
-  connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // optional
-  connectionRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // optional
+  linkedin: { type: String, default: '' },
+
+  connections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  connectionRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
   savedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
   appliedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],

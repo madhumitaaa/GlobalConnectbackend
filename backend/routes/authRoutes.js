@@ -3,10 +3,10 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const upload = require('../middleware/multer');
+const upload = require('../middleware/multer'); // Cloudinary multer
 const { protect } = require('../middleware/authMiddleware');
 
-// Helper: generate token
+// Helper: generate JWT token
 const generateToken = (user) => {
   return jwt.sign(
     { userId: user._id, role: user.role },
@@ -26,7 +26,7 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
     if (existingUser) return res.status(400).json({ message: "User already exists" });
 
     const hashed = await bcrypt.hash(password, 10);
-    const profilePicPath = req.file ? req.file.path : "";
+    const profilePicPath = req.file?.path || req.file?.secure_url || "";
 
     const user = await User.create({
       name,
@@ -48,15 +48,16 @@ router.post("/register", upload.single("profilePic"), async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Registration failed" });
+    console.error("Registration error:", err);
+    return res.status(500).json({ message: "Registration failed", error: err.message });
   }
 });
 
 // ======================== LOGIN ========================
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+  if (!email || !password)
+    return res.status(400).json({ message: "Email and password required" });
 
   try {
     const user = await User.findOne({ email });
@@ -80,8 +81,8 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Login failed" });
+    console.error("Login error:", err);
+    return res.status(500).json({ message: "Login failed", error: err.message });
   }
 });
 
@@ -89,29 +90,35 @@ router.post("/login", async (req, res) => {
 router.get("/me", protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
-    res.json(user);
+    res.status(200).json(user);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch user" });
+    console.error("Fetch user error:", err);
+    res.status(500).json({ message: "Failed to fetch user", error: err.message });
   }
 });
 
 // ======================== UPDATE PROFILE ========================
-// authRoutes.js (update profile route)
+// authRoutes.js (update profile)
 router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
   try {
     const updateData = { ...req.body };
 
-    // Handle profile picture from Cloudinary
+    // If a file was uploaded, store its path
     if (req.file) {
       updateData.profilePic = req.file.path || req.file.url;
     }
 
-    // Convert skills string to array if needed
-    if (updateData.skills && typeof updateData.skills === "string") {
-      updateData.skills = updateData.skills.split(",").map(skill => skill.trim());
+    // Convert array fields to string (if frontend sends arrays)
+    if (Array.isArray(updateData.skills)) {
+      updateData.skills = updateData.skills.join(", ");
+    }
+    if (Array.isArray(updateData.education)) {
+      updateData.education = updateData.education.join(", ");
+    }
+    if (Array.isArray(updateData.experience)) {
+      updateData.experience = updateData.experience.join(", ");
     }
 
-    // Update the user and return new document
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       updateData,
@@ -123,7 +130,7 @@ router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
     res.json(updatedUser);
   } catch (err) {
     console.error("Profile update error:", err);
-    res.status(500).json({ message: "Failed to update user" });
+    res.status(500).json({ message: "Failed to update user", error: err.message });
   }
 });
 
@@ -135,9 +142,10 @@ router.get("/search", protect, async (req, res) => {
     const users = await User.find({
       name: { $regex: name, $options: "i" }
     }).select("-password");
-    res.json(users);
+    res.status(200).json(users);
   } catch (err) {
-    res.status(500).json({ message: "Search failed" });
+    console.error("Search users error:", err);
+    res.status(500).json({ message: "Search failed", error: err.message });
   }
 });
 
