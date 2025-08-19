@@ -96,34 +96,37 @@ router.get("/me", protect, async (req, res) => {
 });
 
 // ======================== UPDATE PROFILE ========================
+// authRoutes.js (update profile route)
 router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
   try {
     const updateData = { ...req.body };
 
+    // Handle profile picture from Cloudinary
     if (req.file) {
-      updateData.profilePic = req.file.path;
+      updateData.profilePic = req.file.path || req.file.url;
     }
 
-    if (typeof updateData.skills === "string") {
+    // Convert skills string to array if needed
+    if (updateData.skills && typeof updateData.skills === "string") {
       updateData.skills = updateData.skills.split(",").map(skill => skill.trim());
     }
 
-    const updated = await User.findByIdAndUpdate(
+    // Update the user and return new document
+    const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       updateData,
-      { new: true }
+      { new: true, runValidators: true }
     ).select("-password");
 
-    if (!updated) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!updatedUser) return res.status(404).json({ message: "User not found" });
 
-    res.json(updated);
+    res.json(updatedUser);
   } catch (err) {
-    console.error(err);
+    console.error("Profile update error:", err);
     res.status(500).json({ message: "Failed to update user" });
   }
 });
+
 
 // ======================== SEARCH USERS ========================
 router.get("/search", protect, async (req, res) => {
