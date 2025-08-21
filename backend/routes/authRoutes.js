@@ -145,7 +145,7 @@ router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
     res.json(updatedUser);
   } catch (err) {
     console.error("Profile update error:", err);
-    res.status(500).json({ message: "Failed to update user", error: err.message });
+     res.status(500).json({ message: err.message, stack: err.stack });
   }
 });
 
