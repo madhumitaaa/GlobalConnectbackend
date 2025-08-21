@@ -78,20 +78,29 @@ async function searchJobs(req, res) {
     return res.status(500).json({ message: 'Search error', error: err.message });
   }
 }
-
 async function applyJob(req, res) {
   try {
     const jobId = req.params.id;
     const userId = req.user?._id;
     if (!userId) return res.status(401).json({ message: 'Login required to apply' });
 
-    // Minimal example: store apply action in job.meta.appliedUsers (or better: create Applications collection)
-    await Job.findByIdAndUpdate(jobId, { $inc: { applies: 1 }, $addToSet: { 'meta.appliedUsers': mongoose.Types.ObjectId(userId) }});
+    const job = await Job.findById(jobId);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    job.meta = job.meta || { appliedUsers: [] };
+    if (!job.meta.appliedUsers.includes(userId)) {
+      job.meta.appliedUsers.push(userId);
+      job.applies += 1;
+      await job.save();
+    }
+
     return res.json({ message: 'Applied successfully' });
   } catch (err) {
+    console.error('Apply error:', err);
     return res.status(500).json({ message: 'Apply failed', error: err.message });
   }
 }
+
 
 async function toggleSaveJob(req, res) {
   try {
@@ -99,28 +108,29 @@ async function toggleSaveJob(req, res) {
     const userId = req.user?._id;
     if (!userId) return res.status(401).json({ message: 'Login required' });
 
-    // Assume User model has savedJobs array — else implement user-based saved list
-    const User = require('../models/User');
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const has = (user.savedJobs || []).some(j => j.toString() === jobId);
-    if (has) {
-      user.savedJobs = user.savedJobs.filter(j => j.toString() !== jobId);
+    user.savedJobs = user.savedJobs || [];
+    const index = user.savedJobs.findIndex(j => j.toString() === jobId);
+
+    if (index > -1) {
+      user.savedJobs.splice(index, 1);
       await user.save();
-      await Job.findByIdAndUpdate(jobId, { $inc: { saves: -1 } }).catch(()=>{});
+      await Job.findByIdAndUpdate(jobId, { $inc: { saves: -1 } }).catch(() => {});
       return res.json({ saved: false });
     } else {
-      user.savedJobs = user.savedJobs || [];
       user.savedJobs.push(jobId);
       await user.save();
-      await Job.findByIdAndUpdate(jobId, { $inc: { saves: 1 } }).catch(()=>{});
+      await Job.findByIdAndUpdate(jobId, { $inc: { saves: 1 } }).catch(() => {});
       return res.json({ saved: true });
     }
   } catch (err) {
-    return res.status(500).json({ message: 'Save fail', error: err.message });
+    console.error('Save error:', err);
+    return res.status(500).json({ message: 'Save failed', error: err.message });
   }
 }
+
 
 module.exports = {
   createJob,

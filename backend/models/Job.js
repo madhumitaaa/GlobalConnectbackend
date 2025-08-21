@@ -24,7 +24,8 @@ const JobSchema = new Schema({
   applies: { type: Number, default: 0 },
   saves: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true },
-  meta: { type: Schema.Types.Mixed },
+  meta: { type: { appliedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }] }, default: { appliedUsers: [] } }
+
 }, { timestamps: true });
 
 // Full-text index for keyword search
