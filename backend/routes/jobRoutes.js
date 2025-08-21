@@ -1,22 +1,27 @@
-// routes/jobRoutes.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const jobController = require('../controllers/jobController');
+const { 
+  createJob, 
+  getAllJobs, 
+  getJobById, 
+  applyJob, 
+  saveJob 
+} = require("../controllers/jobController");
+const { protect } = require("../middleware/authMiddleware");
 
-// Simple auth middleware
-const auth = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
-  next();
-};
+// Create job
+router.post("/", protect, createJob);
 
-// CRUD + Actions
-router.post('/', auth, jobController.createJob);         // Create job
-router.get('/', jobController.getAllJobs);               // Get all jobs
-router.get('/search', jobController.searchJobs);         // 🔥 Put search BEFORE :id
-router.get('/:id', jobController.getJob);                // Get job detail
-router.post('/:id/apply', auth, jobController.applyJob); // Apply to job
-router.post('/:id/save', auth, jobController.toggleSaveJob); // Save/unsave
+// Get all jobs
+router.get("/", getAllJobs);
+
+// Get single job
+router.get("/:id", getJobById);
+
+// Apply for job
+router.post("/:id/apply", protect, applyJob);
+
+// Save/Unsave job
+router.post("/:id/save", protect, saveJob);
 
 module.exports = router;
