@@ -100,6 +100,9 @@ router.get("/me", protect, async (req, res) => {
 // ======================== UPDATE PROFILE ========================
 router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
   try {
+    console.log("Incoming update request body:", req.body);
+    console.log("Incoming update request file:", req.file);
+
     const updateData = {
       name: req.body.name,
       bio: req.body.bio,
@@ -111,7 +114,7 @@ router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
       github: req.body.github,
     };
 
-    // Handle skills (string or array)
+    // Handle skills
     if (req.body.skills) {
       if (typeof req.body.skills === "string") {
         updateData.skills = req.body.skills.split(",").map((s) => s.trim());
@@ -120,12 +123,14 @@ router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
       }
     }
 
-    // Handle profile picture (file OR string URL)
+    // Handle profile picture
     if (req.file) {
       updateData.profilePic = req.file.path || req.file.secure_url;
     } else if (req.body.profilePic) {
       updateData.profilePic = req.body.profilePic;
     }
+
+    console.log("Final updateData:", updateData);
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
@@ -143,6 +148,7 @@ router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
     res.status(500).json({ message: "Failed to update user", error: err.message });
   }
 });
+
 
 // ======================== SEARCH USERS ========================
 router.get("/search", protect, async (req, res) => {
