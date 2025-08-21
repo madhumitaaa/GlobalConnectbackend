@@ -15,10 +15,8 @@ const UserSchema = new mongoose.Schema({
   github: { type: String, default: "" },
 
   skills: { type: [String], default: [] },
-  savedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
-
-
-  role: { type: String, enum: ["user", "admin"], default: "user" }
+  role: { type: String, enum: ["user", "admin"], default: "user" },
+    savedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }], 
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);
