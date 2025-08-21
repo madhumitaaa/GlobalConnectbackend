@@ -3,7 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const upload = require('../middleware/multer'); // Cloudinary multer
+const upload = require('../middleware/multer');
 const { protect } = require('../middleware/authMiddleware');
 
 // Helper: generate JWT token
@@ -98,7 +98,6 @@ router.get("/me", protect, async (req, res) => {
 });
 
 // ======================== UPDATE PROFILE ========================
-// ======================== UPDATE PROFILE ========================
 router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
   try {
     const updateData = {
@@ -112,14 +111,20 @@ router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
       github: req.body.github,
     };
 
-    // Handle skills string → array
+    // Handle skills (string or array)
     if (req.body.skills) {
-      updateData.skills = req.body.skills.split(",").map((s) => s.trim());
+      if (typeof req.body.skills === "string") {
+        updateData.skills = req.body.skills.split(",").map((s) => s.trim());
+      } else if (Array.isArray(req.body.skills)) {
+        updateData.skills = req.body.skills;
+      }
     }
 
-    // Handle file upload (profilePic)
+    // Handle profile picture (file OR string URL)
     if (req.file) {
       updateData.profilePic = req.file.path || req.file.secure_url;
+    } else if (req.body.profilePic) {
+      updateData.profilePic = req.body.profilePic;
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -138,7 +143,6 @@ router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
     res.status(500).json({ message: "Failed to update user", error: err.message });
   }
 });
-
 
 // ======================== SEARCH USERS ========================
 router.get("/search", protect, async (req, res) => {
