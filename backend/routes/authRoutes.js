@@ -98,34 +98,39 @@ router.get("/me", protect, async (req, res) => {
 });
 
 // ======================== UPDATE PROFILE ========================
-// authRoutes.js (update profile)
+// ======================== UPDATE PROFILE ========================
 router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
   try {
-    const updateData = { ...req.body };
+    const updateData = {
+      name: req.body.name,
+      bio: req.body.bio,
+      title: req.body.title,
+      location: req.body.location,
+      company: req.body.company,
+      education: req.body.education,
+      linkedin: req.body.linkedin,
+      github: req.body.github,
+    };
 
-    // If a file was uploaded, store its path
+    // Handle skills string → array
+    if (req.body.skills) {
+      updateData.skills = req.body.skills.split(",").map((s) => s.trim());
+    }
+
+    // Handle file upload (profilePic)
     if (req.file) {
-      updateData.profilePic = req.file.path || req.file.url;
-    }
-
-    // Convert array fields to string (if frontend sends arrays)
-    if (Array.isArray(updateData.skills)) {
-      updateData.skills = updateData.skills.join(", ");
-    }
-    if (Array.isArray(updateData.education)) {
-      updateData.education = updateData.education.join(", ");
-    }
-    if (Array.isArray(updateData.experience)) {
-      updateData.experience = updateData.experience.join(", ");
+      updateData.profilePic = req.file.path || req.file.secure_url;
     }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
-      updateData,
+      { $set: updateData },
       { new: true, runValidators: true }
     ).select("-password");
 
-    if (!updatedUser) return res.status(404).json({ message: "User not found" });
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     res.json(updatedUser);
   } catch (err) {
